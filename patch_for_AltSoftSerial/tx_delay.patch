@@ -1,0 +1,12 @@
+diff --git a/config/AltSoftSerial_Boards.h b/config/AltSoftSerial_Boards.h
+index 9a3e36f..1ccbf68 100644
+--- a/config/AltSoftSerial_Boards.h
++++ b/config/AltSoftSerial_Boards.h
+@@ -83,6 +83,7 @@
+ // Arduino Uno, Duemilanove, LilyPad, etc
+ //
+ #elif defined(__AVR_ATmega168__) || defined(__AVR_ATmega328P__)
++
+  #define ALTSS_USE_TIMER1
+  #define INPUT_CAPTURE_PIN		 8 // receive
+  #define OUTPUT_COMPARE_A_PIN		 9 // transmit

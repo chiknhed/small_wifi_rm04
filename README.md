@@ -22,7 +22,9 @@ Original page : https://github.com/chunlinhan/WiFiRM04
 
 ## How to Use
 
-I tried this library with Uno + AltSoftSerial library. You need to modify AltSoftSerial library slightly. (patch will be shared.)
+I tried this library with Uno + AltSoftSerial library. You need to modify AltSoftSerial library slightly. (patch is shared in the repository.)
+
+I don't know the reason, but AltSoftSerial should be initialized in the main sketch file.
 
 ## Dislclaimer
 
@@ -31,8 +33,6 @@ This library is very unstable because of limited memory of Uno. It works anyway 
 ## ToDo
 
 1. Make a example application.
-2. Add AltSoftSerial library modification for this library.
-
 
 ## Other Resources
 User manual of HLK-RM04 module. (http://www.hlktech.net/inc/lib/download/download.php?DId=19)
