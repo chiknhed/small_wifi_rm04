@@ -8,7 +8,7 @@ extern "C" {
 
 #include "WiFiRM04.h"
 #include "WiFiRM04Client.h"
-#include "WiFiRM04Server.h"
+//#include "WiFiRM04Server.h"
 #include "server_drv.h"
 
 
@@ -48,6 +48,7 @@ int WiFiRM04Client::connect(const char* host, uint16_t port) {
     return 1;
 }
 
+#ifndef _SMALL_DRIVER
 int WiFiRM04Client::connect(IPAddress ip, uint16_t port) {
     if(_sock == MAX_SOCK_NUM)
 		_sock = getFirstSocket();
@@ -72,6 +73,11 @@ int WiFiRM04Client::connect(IPAddress ip, uint16_t port) {
     }
     return 1;
 }
+#else
+int WiFiRM04Client::connect(IPAddress ip, uint16_t port) {
+	return 0;
+}
+#endif
 
 size_t WiFiRM04Client::write(uint8_t b) {
 	  return write(&b, 1);

@@ -10,7 +10,7 @@ extern "C" {
 #include "debug.h"
 }
 
-
+#ifndef _SMALL_DRIVER
 // Start server TCP on port specified
 void ServerDrv::startServer(uint16_t port, uint8_t sock, uint8_t protMode)
 {
@@ -20,12 +20,14 @@ void ServerDrv::startServer(uint16_t port, uint8_t sock, uint8_t protMode)
 // Start server TCP on port specified
 void ServerDrv::startClient(uint32_t ipAddress, uint16_t port, uint8_t sock, uint8_t protMode)
 {
-    AtDrv::startClient(sock, ipAddress, port, protMode);
+	AtDrv::startClient(sock, ipAddress, port, protMode);
 }
+#endif
 
 // Start server TCP on port specified
 void ServerDrv::startClient(const char *host, uint16_t port, uint8_t sock, uint8_t protMode)
 {
+	AtDrv::stopClient(sock);	// flush buffer first
     AtDrv::startClient(sock, host, port, protMode);
 }
 
@@ -35,12 +37,13 @@ void ServerDrv::stopClient(uint8_t sock)
 	AtDrv::stopClient(sock);
 }
 
-
+#ifndef _SMALL_DRIVER
 uint8_t ServerDrv::getServerState(uint8_t sock)
 {
     // Since RM04 can't get current connection status, we always return LISTEN
     return LISTEN;
 }
+#endif _SMALL_DRIVER
 
 uint8_t ServerDrv::getClientState(uint8_t sock)
 {

@@ -1,6 +1,8 @@
 #ifndef Server_Drv_h
 #define Server_Drv_h
 
+#define _SMALL_DRIVER
+
 #include <inttypes.h>
 #include "wifi_spi.h"
 
@@ -10,16 +12,20 @@ class ServerDrv
 {
 public:
 
+#ifndef _SMALL_DRIVER
     // Start server TCP on port specified
     static void startServer(uint16_t port, uint8_t sock, uint8_t protMode=TCP_MODE);
+#endif
 
     static void startClient(uint32_t ipAddress, uint16_t port, uint8_t sock, uint8_t protMode=TCP_MODE);
 
     static void startClient(const char *host, uint16_t port, uint8_t sock, uint8_t protMode=TCP_MODE);
 
     static void stopClient(uint8_t sock);
-                                                                                  
+                                                            
+#ifndef _SMALL_DRIVER															
     static uint8_t getServerState(uint8_t sock);
+#endif
 
     static uint8_t getClientState(uint8_t sock);
 

@@ -3,6 +3,8 @@
 
 #include <inttypes.h>
 
+#define _SMALL_DRIVER
+
 extern "C" {
 	#include "utility/wl_definitions.h"
 	#include "utility/wl_types.h"
@@ -10,7 +12,8 @@ extern "C" {
 
 #include "IPAddress.h"
 #include "WiFiRM04Client.h"
-#include "WiFiRM04Server.h"
+
+#define _SMALL_DRIVER
 
 class WiFiRM04Class
 {
@@ -23,20 +26,24 @@ public:
 
     WiFiRM04Class();
 
+#ifndef _SMALL_DRIVER
     /*
      * Get the first socket available
      */
     static uint8_t getSocket();
+#endif
 
     /*
      * Get firmware version
      */
     static char* firmwareVersion();
     
+#ifndef	_SMALL_DRIVER
     /*
      * Start Wifi as a AP
      */    
     static bool beginAsAp(char* ssid);
+#endif
 
 
     /* Start Wifi connection for OPEN networks
@@ -64,6 +71,7 @@ public:
      */
     int begin(char* ssid, const char *passphrase);
 
+#ifndef _SMALL_DRIVER
     /* Change Ip configuration settings disabling the dhcp client
         *
         * param local_ip: 	Static ip configuration
@@ -93,7 +101,7 @@ public:
         * param subnet:		Static Subnet mask
         */
     void config(IPAddress local_ip, IPAddress dns_server, IPAddress gateway, IPAddress subnet);
-
+	
     /* Change DNS Ip configuration
      *
      * param dns_server1: ip configuration for DNS server 1
@@ -107,6 +115,7 @@ public:
      *
      */
     void setDNS(IPAddress dns_server1, IPAddress dns_server2);
+#endif
 
     /*
      * Disconnect from the network
@@ -122,6 +131,7 @@ public:
      */
     uint8_t* macAddress(uint8_t* mac);
 
+#ifndef _SMALL_DRIVER
     /*
      * Get the interface IP address.
      *
@@ -157,6 +167,7 @@ public:
       * return: pointer to uint8_t array with length WL_MAC_ADDR_LENGTH
       */
     uint8_t* BSSID(uint8_t* bssid);
+#endif
 
     /*
       * Return the current RSSI /Received Signal Strength in dBm)
@@ -166,12 +177,14 @@ public:
       */
     int32_t RSSI();
 
+#ifndef _SMALL_DRIVER
     /*
       * Return the Encryption Type associated with the network
       *
       * return: one value of wl_enc_type enum
       */
     uint8_t	encryptionType();
+#endif
 
     /*
      * Start scan WiFi networks available
@@ -214,6 +227,7 @@ public:
      */
     uint8_t status();
 
+#ifndef _SMALL_DRIVER
     /*
      * Resolve the given hostname to an IP address.
      * param aHostname: Name to be resolved
@@ -222,9 +236,8 @@ public:
      *          else error code
      */
     int hostByName(const char* aHostname, IPAddress& aResult);
-
+#endif
     friend class WiFiClientRM04;
-    friend class WiFiServerRM04;
 };
 
 extern WiFiRM04Class WiFi;

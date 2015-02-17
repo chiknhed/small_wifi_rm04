@@ -9,9 +9,9 @@
 #define WL_DEFINITIONS_H_
 
 // Maximum size of a SSID
-#define WL_SSID_MAX_LENGTH 32
+#define WL_SSID_MAX_LENGTH 10
 // Length of passphrase. Valid lengths are 8-63.
-#define WL_WPA_KEY_MAX_LENGTH 63
+#define WL_WPA_KEY_MAX_LENGTH 12
 // Length of key in bytes. Valid values are 5 and 13.
 #define WL_WEP_KEY_MAX_LENGTH 13
 // Size of a MAC-address or BSSID
@@ -19,9 +19,9 @@
 // Size of a MAC-address or BSSID
 #define WL_IPV4_LENGTH 4
 // Maximum size of a SSID list
-#define WL_NETWORKS_LIST_MAXNUM	10
+#define WL_NETWORKS_LIST_MAXNUM	1
 // Maxmium number of socket
-#define	MAX_SOCK_NUM		2
+#define	MAX_SOCK_NUM		1
 // Default state value for Wifi state field
 #define NA_STATE -1
 //Maximum number of attempts to establish wifi connection

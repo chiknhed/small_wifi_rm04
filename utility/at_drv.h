@@ -1,6 +1,8 @@
 #ifndef AT_DRV_H
 #define AT_DRV_H
 
+#define _SMALL_DRIVER
+
 #include "wifi_spi.h"
 #include <QueueList.h>
 
@@ -46,21 +48,25 @@ typedef enum LinuxTcpState {
 	TCP_MAX_STATES  /* Leave at the end! */
 };
 
+class AltSoftSerial;
+
 class AtDrv
 {
 private:
-	static HardwareSerial serialPort[2];
+	static AltSoftSerial serialPort[1];
 	static bool atMode;
-	static uint16_t sockPort[2];
+	static uint16_t sockPort[1];
 	static QueueList<uint8_t> sock0DataQueue;
-	static bool sockConnected[2];
+	static bool sockConnected[1];
 	static bool switchToAtMode();
 	static bool switchToDataMode(long timeout = SERIAL_TIMEOUT);
 	static void setAtMode(bool mode);
 	static bool echoTest(long timeout = SERIAL_TIMEOUT);
 	static void clearSerialRxData();
 	static bool setWiFiConfig(char *ssid, int type, const char *password, long timeout = SERIAL_TIMEOUT);
+#ifndef _SMALL_DRIVER
 	static bool getRemoteIp(uint8_t sock, uint8_t *ip, long timeout = SERIAL_TIMEOUT);
+#endif
 	static bool getLocalPort(uint8_t sock, uint16_t *port, long timeout = SERIAL_TIMEOUT);
 	static bool getRemotePort(uint8_t sock, uint16_t *port, long timeout = SERIAL_TIMEOUT);
 	static bool setNetMode(int netMode, long timeout = SERIAL_TIMEOUT);
@@ -72,35 +78,47 @@ private:
 	static bool setProtocol(uint8_t sock, uint8_t protocol, long timeout = SERIAL_TIMEOUT);
 	static bool setLocalPort(uint8_t sock, uint16_t port, long timeout = SERIAL_TIMEOUT);
 	static bool setPort(uint8_t sock, uint16_t port, long timeout = SERIAL_TIMEOUT);
+#ifndef _SMALL_DRIVER
 	static bool setRemoteIp(uint8_t sock, uint32_t ip, long timeout = SERIAL_TIMEOUT);
+#endif
 	static bool getRemoteHost(uint8_t sock, char *host, long timeout = SERIAL_TIMEOUT);
 	static bool setRemoteHost(uint8_t sock, const char *host, long timeout = SERIAL_TIMEOUT);
+#ifndef _SMALL_DRIVER
 	static bool setDhcpd(bool enable, long timeout = SERIAL_TIMEOUT);
 	static bool setDhcpdIp(uint32_t ipStart, uint32_t ipEnd, uint32_t mask, uint32_t gateway, long timeout = SERIAL_TIMEOUT);
 	static bool setDhcpdDns(uint32_t dns1, uint32_t dns2, long timeout = SERIAL_TIMEOUT);
 	static bool setDhcpdTime(uint32_t time, long timeout = SERIAL_TIMEOUT);
 	static bool setNetIp(uint32_t ip, uint32_t mask, uint32_t gateway, long timeout= SERIAL_TIMEOUT);
 	static bool setNetDns(uint32_t dns1, uint32_t dns2, long timeout = SERIAL_TIMEOUT);
+#endif
 	static bool getTcpAuto(uint8_t sock, bool *enable, long timeout = SERIAL_TIMEOUT);
 	static bool setTcpAuto(uint8_t sock, bool enable, long timeout = SERIAL_TIMEOUT);
+#ifndef _SMALL_DRIVER
 	static bool getNetworkTimeout(uint8_t sock, uint32_t *time, long timeout = SERIAL_TIMEOUT);
 	static bool setNetworkTimeout(uint8_t sock, uint32_t time, long timeout = SERIAL_TIMEOUT);
+#endif
 	static uint8_t portStateMapping(LinuxTcpState linuxPortState);
+#ifndef _SMALL_DRIVER
 	static void getLocalIp(uint8_t *ip, long timeout = SERIAL_TIMEOUT*5);
 	static void getNetmask(uint8_t *mask, long timeout = SERIAL_TIMEOUT*5);
 	static void getGateway(uint8_t *gwip, long timeout = SERIAL_TIMEOUT*5);
+#endif
   
 public:
 	AtDrv();
 	static bool isAtMode();
     static void begin();
     static void end();
+#ifndef _SMALL_DRIVER
 	static void getRemoteData(uint8_t sock, uint8_t *ip, uint16_t *port);
+#endif
 	static bool getMAC(uint8_t *mac, long timeout = SERIAL_TIMEOUT);
-	static bool setApSSID(char *ssid, int type, const char *password);
 	static bool setSSID(char *ssid, int type, const char *password = NULL);
+#ifndef _SMALL_DRIVER
+	static bool setApSSID(char *ssid, int type, const char *password);
 	static void startServer(uint8_t sock, uint16_t port, uint8_t protMode);
 	static void startClient(uint8_t sock, uint32_t ipAddress, uint16_t port, uint8_t protMode);
+#endif
 	static void startClient(uint8_t sock, const char *host, uint16_t port, uint8_t protMode);
 	static uint16_t availData(uint8_t sock);
 	static int peek(uint8_t sock);
@@ -110,14 +128,18 @@ public:
 	static uint8_t getClientState(uint8_t sock, long timeout = SERIAL_TIMEOUT*5);
 	static void stopClient(uint8_t sock);
 	static bool isWiFiConnected(long timeout = SERIAL_TIMEOUT);
+#ifndef _SMALL_DRIVER
 	static void getNetworkData(uint8_t *ip, uint8_t *mask, uint8_t *gwip);
+#endif
 	static bool disconnect();
 	static uint8_t getScanNetworks(char _networkSsid[][WL_SSID_MAX_LENGTH+1], int32_t _networkRssi[], uint8_t _networkEncr[], uint8_t maxItems, long timeout = SERIAL_TIMEOUT*20);
+#ifndef _SMALL_DRIVER
 	static void getCurrentSSID(char _ssid[], long timeout = SERIAL_TIMEOUT*5);
 	static void getCurrentBSSID(uint8_t _ssid[], long timeout = SERIAL_TIMEOUT*5);
 	static int32_t getCurrentRSSI(long timeout = SERIAL_TIMEOUT*5);
 	static uint8_t getCurrentEncryptionType(long timeout = SERIAL_TIMEOUT*5);
 	static void getFwVersion(char fwVersion[], uint8_t bufLength, long timeout = SERIAL_TIMEOUT);
+#endif
 	static uint8_t checkDataSent(uint8_t sock);
 };
 

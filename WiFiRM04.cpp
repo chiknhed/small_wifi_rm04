@@ -27,6 +27,7 @@ void WiFiRM04Class::init()
     WiFiDrv::wifiDriverInit();
 }
 
+#ifndef _SMALL_DRIVER
 uint8_t WiFiRM04Class::getSocket()
 {
     for (uint8_t i = 0; i < MAX_SOCK_NUM; ++i)
@@ -38,16 +39,19 @@ uint8_t WiFiRM04Class::getSocket()
     }
     return NO_SOCKET_AVAIL;
 }
+#endif
 
 char* WiFiRM04Class::firmwareVersion()
 {
 	return WiFiDrv::getFwVersion();
 }
 
+#ifndef _SMALL_DRIVER
 bool WiFiRM04Class::beginAsAp(char* ssid)
 {
     return WiFiDrv::wifiSetApMode(ssid, strlen(ssid));
 }
+#endif
 
 int WiFiRM04Class::begin(char* ssid)
 {
@@ -69,6 +73,7 @@ int WiFiRM04Class::begin(char* ssid)
    return status;
 }
 
+#ifndef _SMALL_DRIVER
 int WiFiRM04Class::begin(char* ssid, uint8_t key_idx, const char *key)
 {
 	uint8_t status = WL_IDLE_STATUS;
@@ -87,13 +92,14 @@ int WiFiRM04Class::begin(char* ssid, uint8_t key_idx, const char *key)
    }
    return status;
 }
+#endif
 
 int WiFiRM04Class::begin(char* ssid, const char *passphrase)
 {
 	uint8_t status = WL_IDLE_STATUS;
 	uint8_t attempts = WL_MAX_ATTEMPT_CONNECTION;
 
-    // set passphrase
+	// set passphrase
     if (WiFiDrv::wifiSetPassphrase(ssid, strlen(ssid), passphrase, strlen(passphrase))!= WL_FAILURE)
     {
  	   do
@@ -108,6 +114,7 @@ int WiFiRM04Class::begin(char* ssid, const char *passphrase)
     return status;
 }
 
+#ifndef _SMALL_DRIVER
 void WiFiRM04Class::config(IPAddress local_ip)
 {
 	WiFiDrv::config(1, (uint32_t)local_ip, 0, 0);
@@ -140,10 +147,15 @@ void WiFiRM04Class::setDNS(IPAddress dns_server1, IPAddress dns_server2)
 {
 	WiFiDrv::setDNS(2, (uint32_t)dns_server1, (uint32_t)dns_server2);
 }
+#endif
 
 int WiFiRM04Class::disconnect()
 {
+#ifndef _SMALL_DRIVER
     return WiFiDrv::disconnect();
+#else
+	return 0;
+#endif
 }
 
 uint8_t* WiFiRM04Class::macAddress(uint8_t* mac)
@@ -152,7 +164,8 @@ uint8_t* WiFiRM04Class::macAddress(uint8_t* mac)
 	memcpy(mac, _mac, WL_MAC_ADDR_LENGTH);
   return mac;
 }
-   
+  
+#ifndef _SMALL_DRIVER
 IPAddress WiFiRM04Class::localIP()
 {
 	IPAddress ret;
@@ -185,20 +198,28 @@ uint8_t* WiFiRM04Class::BSSID(uint8_t* bssid)
 	memcpy(bssid, _bssid, WL_MAC_ADDR_LENGTH);
     return bssid;
 }
+#endif
 
 int32_t WiFiRM04Class::RSSI()
 {
+#ifndef _SMALL_DRIVER
     return WiFiDrv::getCurrentRSSI();
+#else
+	return -60;
+#endif
 }
 
+#ifndef _SMALL_DRIVER
 uint8_t WiFiRM04Class::encryptionType()
 {
     return WiFiDrv::getCurrentEncryptionType();
 }
+#endif
 
 
 int8_t WiFiRM04Class::scanNetworks()
 {
+#ifndef _SMALL_DRIVER
 	uint8_t attempts = 10;
 	uint8_t numOfNetworks = 0;
 
@@ -211,21 +232,36 @@ int8_t WiFiRM04Class::scanNetworks()
  	}
 	while (( numOfNetworks == 0)&&(--attempts>0));
 	return numOfNetworks;
+#else
+	return 0;
+#endif
 }
 
 char* WiFiRM04Class::SSID(uint8_t networkItem)
 {
+#ifndef _SMALL_DRIVER
 	return WiFiDrv::getSSIDNetoworks(networkItem);
+#else
+	return "";
+#endif
 }
 
 int32_t WiFiRM04Class::RSSI(uint8_t networkItem)
 {
+#ifndef _SMALL_DRIVER
 	return WiFiDrv::getRSSINetoworks(networkItem);
+#else
+	return -60;
+#endif
 }
 
 uint8_t WiFiRM04Class::encryptionType(uint8_t networkItem)
 {
+#ifndef _SMALL_DRIVER
     return WiFiDrv::getEncTypeNetowrks(networkItem);
+#else
+	return 0;
+#endif
 }
 
 uint8_t WiFiRM04Class::status()
@@ -233,9 +269,11 @@ uint8_t WiFiRM04Class::status()
     return WiFiDrv::getConnectionStatus();
 }
 
+#ifndef _SMALL_DRIVER
 int WiFiRM04Class::hostByName(const char* aHostname, IPAddress& aResult)
 {
 	return WiFiDrv::getHostByName(aHostname, aResult);
 }
+#endif
 
 WiFiRM04Class WiFi;

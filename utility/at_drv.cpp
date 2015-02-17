@@ -5,7 +5,9 @@
 #include "IPAddress.h"
 #include "at_drv.h"                   
 #include "pins_arduino.h"
-#define _DEBUG_
+#include "AltSoftSerial.h"
+
+//#define _DEBUG_
 extern "C" {
 #include "debug.h"
 }
@@ -13,15 +15,15 @@ extern "C" {
 // define USE_ESCAPE_PIN to use HW pin to switch mode
 #define USE_ESCAPE_PIN
 // use this pin to pull up/down module's ES/RTS pin to switch mode
-#define ESCAPE_PIN				21
+#define ESCAPE_PIN				4
 #define ESCAPE_PIN_ACTIVE		LOW
 
 // CHECK_TCP_STATE is an experimental feature, disable it by default
 // #define CHECK_TCP_STATE
 
 // Suggest to use 38400, even using hardware UART
-#define DEFAULT_BAUD1			38400
-#define DEFAULT_BAUD2			38400
+#define DEFAULT_BAUD1			9600
+#define DEFAULT_BAUD2			9600
 
 // default Tes time should be 100 ms
 #define TES_TIME_IN_MS			100
@@ -32,15 +34,10 @@ extern "C" {
 #define MAX_IP_BUF_SIZE			16
 #define MAX_WIFI_CONF_BUF_SIZE	64
 #define MAX_RESP_BUF_SIZE		64
-#define MAX_HOST_NAME_BUF_SIZE	128
-#define MAX_TEMP_BUF_SIZE		64
+#define MAX_HOST_NAME_BUF_SIZE	55
+#define MAX_TEMP_BUF_SIZE		55
 #define MAX_DHCPD_IP_BUF_SIZE	128
-#define MAX_LINE_BUF_SIZE		512
-
-// use Serial1 as default serial port to communicate with WiFi module
-#define AT_DRV_SERIAL Serial1
-// use Serial2 to communicate the uart2 of our WiFi module
-#define AT_DRV_SERIAL1 Serial2
+#define MAX_LINE_BUF_SIZE		128
 
 // define the client socket port #
 #define SOCK0_LOCAL_PORT		1024
@@ -51,26 +48,26 @@ const uint16_t localSockPort[] = {SOCK0_LOCAL_PORT, SOCK1_LOCAL_PORT};
 
 char at_ok[] = "ok\r\n";
 char at_Connected[] = "Connected\r\n";
-char at_out_trans[] = "at+out_trans=0\r";
-char *at_remoteip[2] = {"at+remoteip=%s\r\r", "at+C2_remoteip=%s\r\r"};
-char *at_remoteport[2] = {"at+remoteport=%s\r\r", "at+C2_port=%s\r\r"};
-char *at_CLport[2] = {"at+CLport=%s\r\r", "at+C2_CLport=%s\r\r"};
-char at_wifi_conf[] = "at+wifi_conf=%s\r\r";
-char at_wifi_ConState[] = "at+wifi_ConState=?\r\r";
+char *at_remoteip[1] = {"at+remoteip=%s\r\r"};
+char *at_remoteport[1] = {"at+remoteport=%s\r\r"};
+char *at_CLport[1] = {"at+CLport=%s\r\r"};
+char at_wifi_conf[] = "at+wifi_conf=%s,%s,%s\r\r";
 char at_Get_MAC[] = "at+Get_MAC=?\r\r";
 char at_netmode[] = "at+netmode=%c\r\r";
-char at_net_commit[] = "at+net_commit=1\r\r";
 char at_reconn[] = "at+reconn=1\r\r";
-char *at_mode[2] = {"at+mode=%s\r\r" , "at+C2_mode=%s\r\r"};
-char *at_remotepro[2] = {"at+remotepro=%s\r\r", "at+C2_protocol=%s\r\r"};
+char *at_mode[1] = {"at+mode=%s\r\r"};
+char *at_remotepro[1] = {"at+remotepro=%s\r\r"};
+#ifndef _SMALL_DRIVER
 char at_dhcpd[] = "at+dhcpd=%c\r\r";
 char at_dhcpd_ip[] = "at+dhcpd_ip=%s\r\r";
 char at_dhcpd_dns[] = "at+dhcpd_dns=%s\r\r";
 char at_dhcpd_time[] = "at+dhcpd_time=%s\r\r";
 char at_net_ip[] = "at+net_ip=%s\r\r";
 char at_net_dns[] = "at+net_dns=%s\r\r";
-char *at_tcp_auto[2] = {"at+tcp_auto=%c\r\r" , "at+C2_tcp_auto=%c\r\r"};
-char *at_timeout[2] = {"at+timeout=%s\r\r", "at+C2_timeout=%s\r\r"};
+#endif
+char *at_tcp_auto[1] = {"at+tcp_auto=%c\r\r"};
+#ifndef _SMALL_DRIVER
+char *at_timeout[1] = {"at+timeout=%s\r\r"};
 char at_tcp_port_stat[] = "at+excxxx=cat /proc/net/tcp | grep '[0-9]: [^0].*:%04X'> /dev/ttyS1";
 char at_get_ip[] = "at+excxxx=ifconfig ra0 | grep 'inet addr:' | sed -e 's/inet addr:\\(.*\\).*Bcast:.*Mask:.*/\\1/' > /dev/ttyS1";
 char at_get_mask[] = "at+excxxx=ifconfig ra0 | grep 'inet addr:' | sed -e 's/.*Mask:\\(.*\\)/\\1/' > /dev/ttyS1";
@@ -79,24 +76,34 @@ char at_get_ssid[] = "at+excxxx=iwconfig ra0 | grep ESSID | sed -e 's/.*ESSID:\"
 char at_get_bssid[] = "at+excxxx=iwconfig ra0 | grep 'Access Point' | sed -e 's/.*Access Point: \\(.*\\)/\\1/'  > dev/ttyS1";
 char at_get_rssi[] = "at+excxxx=iwconfig ra0 | grep 'Link Quality' | sed -e 's/.*Link Quality=\\(.*\\)\\/.*/\\1/'  > dev/ttyS1";
 char at_get_enc[] = "at+excxxx=iwpriv ra0 show EncrypType | sed -e 's/ra0.*show:[[:space:]]\\(.*\\).*/\\1/'  > dev/ttyS1";
+#endif
 char at_wifi_Scan[] = "at+wifi_Scan=?\r\r";
 char at_ver[] = "at+ver=?\r\r";
 
+AltSoftSerial mySerial;
+AltSoftSerial AtDrv::serialPort[] = {mySerial};
+
+int freeRam2 () {
+  extern int __heap_start, *__brkval;
+  int v;
+  return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
+}
+
 void AtDrv::begin()
 {
+#if 0
 	serialPort[0].begin(DEFAULT_BAUD1);
-	serialPort[1].begin(DEFAULT_BAUD2);
 	clearSerialRxData();
+#endif
 }
 
 void AtDrv::end() {
 	serialPort[0].end();
-	serialPort[1].end();
 }
 
 bool AtDrv::isAtMode()
 {
-   return atMode;
+	return atMode;
 }
 
 void AtDrv::setAtMode(bool mode)
@@ -106,15 +113,15 @@ void AtDrv::setAtMode(bool mode)
 
 bool AtDrv::echoTest(long timeout)
 {
-	char buf[MAX_TEMP_BUF_SIZE+1];
+	char buf[12];
 	int i;
 	char *token;
-  
+	
 	clearSerialRxData();
-	serialPort[0].println("#32767");
+	serialPort[0].println(F("#32767"));
 	serialPort[0].flush();
 	serialPort[0].setTimeout(timeout);
-	i = serialPort[0].readBytes(buf, MAX_TEMP_BUF_SIZE);
+	i = serialPort[0].readBytes(buf, 12);
 	if(i == 0) {
 		INFO1("Echo No resp");
 		return false;
@@ -133,14 +140,14 @@ bool AtDrv::echoTest(long timeout)
 
 void AtDrv::clearSerialRxData()
 {
-	while(serialPort[0].available())
-		serialPort[0].read();
+	serialPort[0].flushInput();
 }
 
 #ifdef USE_ESCAPE_PIN
 bool AtDrv::switchToAtMode()
 {
 	int retryCount = 0;
+	
 	// flush tx buffer's data first
 	serialPort[0].flush();
 retry:
@@ -156,14 +163,13 @@ retry:
 			sock0DataQueue.push(serialPort[0].read());
 		}
 	}
-
 	if(echoTest()) {
 		setAtMode(true);
 		return true;
 	}
 	else
 		setAtMode(false);
-
+	
 	if(retryCount++ < 5)
 		goto retry;
 		
@@ -228,12 +234,14 @@ bool AtDrv::switchToDataMode(long timeout)
 {
 	int retryCount = 0;
 
+	Serial.println(F("hello"));
+	
 	if(!isAtMode())
 		return true;
 retry:
 	clearSerialRxData();
 	INFO1(at_out_trans);
-	serialPort[0].print(at_out_trans);
+	serialPort[0].print(F("at+out_trans=0\r"));
 	serialPort[0].flush();
 	serialPort[0].setTimeout(timeout);
 	if(serialPort[0].find(at_ok)) {
@@ -247,6 +255,7 @@ retry:
 	return false;
 }
 
+#ifndef _SMALL_DRIVER
 bool AtDrv::getRemoteIp(uint8_t sock, uint8_t *ip, long timeout)
 {
 	bool ret = false;
@@ -277,6 +286,7 @@ bool AtDrv::getRemoteIp(uint8_t sock, uint8_t *ip, long timeout)
 end:
 	return ret;
 }
+#endif
 
 bool AtDrv::getLocalPort(uint8_t sock, uint16_t *port, long timeout)
 {
@@ -334,6 +344,7 @@ end:
 	return ret;
 }
 
+#ifndef _SMALL_DRIVER
 void AtDrv::getRemoteData(uint8_t sock, uint8_t *ip, uint16_t *port)
 {
 	if(!isAtMode()) {
@@ -351,7 +362,9 @@ void AtDrv::getRemoteData(uint8_t sock, uint8_t *ip, uint16_t *port)
 end:
 	return;
 }
+#endif
 
+#ifndef _SMALL_DRIVER
 void AtDrv::getLocalIp(uint8_t *ip, long timeout)
 {
 	clearSerialRxData();
@@ -471,6 +484,7 @@ void AtDrv::getNetworkData(uint8_t *ip, uint8_t *mask, uint8_t *gwip)
 end:
 	return;
 }
+#endif
 
 bool AtDrv::isWiFiConnected(long timeout)
 {
@@ -486,7 +500,7 @@ bool AtDrv::isWiFiConnected(long timeout)
 	
 	clearSerialRxData();
 	INFO1(at_wifi_ConState);
-	serialPort[0].print(at_wifi_ConState);
+	serialPort[0].print(F("at+wifi_ConState=?\r\r"));
 	serialPort[0].flush();
 	serialPort[0].setTimeout(timeout);
 	if(!serialPort[0].find(at_Connected)) {
@@ -502,19 +516,15 @@ bool AtDrv::setWiFiConfig(char *ssid, int type, const char * password, long time
 {
 	bool ret = false;
 	char wifiConfBuf[MAX_WIFI_CONF_BUF_SIZE];
-	char conSetting[MAX_TEMP_BUF_SIZE];
-
+	
 	if(type == ENC_TYPE_NONE)
-		sprintf(conSetting, "%s,none,", ssid);
+		sprintf(wifiConfBuf, at_wifi_conf, ssid, "none", "");
 	else if(type == ENC_TYPE_WEP_OPEN)
-		sprintf(conSetting, "%s,wep_open,%s", ssid, password);
+		sprintf(wifiConfBuf, at_wifi_conf, ssid, "wep_open", password);
 	else
-		sprintf(conSetting, "%s,auto,%s", ssid, password);
-
-	sprintf(wifiConfBuf, at_wifi_conf, conSetting);
+		sprintf(wifiConfBuf, at_wifi_conf, ssid, "auto", password);
 	
 	clearSerialRxData();
-	INFO1(wifiConfBuf);
 	serialPort[0].print(wifiConfBuf);
 	serialPort[0].flush();
 	serialPort[0].setTimeout(timeout);
@@ -554,7 +564,7 @@ void AtDrv::netCommit()
 {
 	clearSerialRxData();
 	INFO1(at_net_commit);
-	serialPort[0].print(at_net_commit);
+	serialPort[0].print(F("at+net_commit=1\r\r"));
 	serialPort[0].flush();
 	delay(30000);
 	// No any response
@@ -563,7 +573,7 @@ void AtDrv::netCommit()
 bool AtDrv::reConnect(long timeout)
 {
 	bool ret = false;
-
+	
 	clearSerialRxData();
 	INFO1(at_reconn);
 	serialPort[0].print(at_reconn);
@@ -637,6 +647,7 @@ end:
 	return ret;
 }
 
+#ifndef _SMALL_DRIVER
 bool AtDrv::setDhcpd(bool enable, long timeout)
 {
 	bool ret = false;
@@ -926,6 +937,7 @@ bool AtDrv::setApSSID(char *ssid, int type, const char *password)
 end:
 	return ret;
 }
+#endif
 
 bool AtDrv::setSSID(char *ssid, int type, const char *password)
 {
@@ -940,7 +952,7 @@ bool AtDrv::setSSID(char *ssid, int type, const char *password)
 	
 	if(!setNetMode(NET_MODE_WIFI_CLIENT))
 		goto end;
-	
+		
 	if(!setWiFiConfig(ssid, type, password))
 		goto end;
 		
@@ -958,7 +970,7 @@ bool AtDrv::getMAC(uint8_t *mac, long timeout)
 	int bytes;
 	int i = 0;
 	char *token;
-  
+	
 	memset(mac, 0, WL_MAC_ADDR_LENGTH);
 	
 	if(!isAtMode()) {
@@ -985,22 +997,14 @@ bool AtDrv::getMAC(uint8_t *mac, long timeout)
 		goto end;
 	}
 	
-	buf[bytes] = NULL;	
-	token = strtok(buf, " :,\r\n");
-
-	while(token != NULL && i < WL_MAC_ADDR_LENGTH) {
-		mac[WL_MAC_ADDR_LENGTH-1-i] = strtol(token, NULL, 16);
-		token = strtok(NULL, " :,\r\n");
-		i++;
-	}
-  
-	if(i!=6) {
-		INFO1("Can't get valid MAC string");
-		INFO1(buf);
-		memset(mac, 0, WL_MAC_ADDR_LENGTH);
-		goto end;	  
-	}
-
+	buf[bytes] = NULL;
+	
+	for (i = 0; i < bytes; i++) {
+		if (buf[i] == ',')
+			buf[i] = '\0';
+	}	
+	sscanf(buf, "%x:%x:%x:%x:%x:%x", &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]);
+	
 	ret = true;
 end:
 	return ret;
@@ -1033,6 +1037,10 @@ bool AtDrv::getMode(uint8_t sock, int *mode, long timeout)
 	
 	modeBuf[bytes] = NULL;
 	
+	Serial.println(modeBuf);
+	*mode = MODE_CLIENT;
+
+#if 0	
 	if(sock == 0) {
 		if(strstr(modeBuf, "server")) {
 			*mode = MODE_SERVER;
@@ -1055,6 +1063,7 @@ bool AtDrv::getMode(uint8_t sock, int *mode, long timeout)
 			ret = true;		
 		}
 	}
+#endif
 		
 end:
 	return ret;
@@ -1237,6 +1246,7 @@ end:
 	return ret;
 }
 
+#ifndef _SMALL_DRIVER
 bool AtDrv::setRemoteIp(uint8_t sock, uint32_t ip, long timeout)
 {
 	bool ret = false;
@@ -1260,6 +1270,7 @@ bool AtDrv::setRemoteIp(uint8_t sock, uint32_t ip, long timeout)
 end:
 	return ret;
 }
+#endif
 
 bool AtDrv::getRemoteHost(uint8_t sock, char *host, long timeout)
 {
@@ -1320,6 +1331,7 @@ end:
 	return ret;
 }
 
+#ifndef _SMALL_DRIVER
 void AtDrv::startServer(uint8_t sock, uint16_t port, uint8_t protMode)
 {
 	bool needReConn = false;
@@ -1384,6 +1396,7 @@ void AtDrv::startServer(uint8_t sock, uint16_t port, uint8_t protMode)
 end:
 	return;
 }
+
 
 void AtDrv::startClient(uint8_t sock, uint32_t ipAddress, uint16_t port, uint8_t protMode)
 {
@@ -1479,6 +1492,7 @@ void AtDrv::startClient(uint8_t sock, uint32_t ipAddress, uint16_t port, uint8_t
 end:
 	return;
 }
+#endif
 
 void AtDrv::startClient(uint8_t sock, const char *host, uint16_t port, uint8_t protMode)
 {
@@ -1490,16 +1504,16 @@ void AtDrv::startClient(uint8_t sock, const char *host, uint16_t port, uint8_t p
 	bool needReConn = true;
 #endif
 	int curMode;
+#ifndef _SMALL_DRIVER
 	char curHostBuf[MAX_HOST_NAME_BUF_SIZE];
+#endif
 	uint8_t curProtocol;
 	uint16_t curPort;
 	uint16_t curLocalPort;
 	uint32_t curTimeout;
 	bool curTcpAuto;
-
+	
 	// clear uart buffer first
-	stopClient(sock);
-
 	if(!isAtMode()) {
 		if(!switchToAtMode()) {
 			INFO1("Can't switch to at mode");
@@ -1507,6 +1521,11 @@ void AtDrv::startClient(uint8_t sock, const char *host, uint16_t port, uint8_t p
 		}
 	}
 	
+	if(!setMode(sock, MODE_CLIENT)) {
+		INFO1("Can't set mode");
+		goto end;			
+	}
+#if 0
 	if(!getMode(sock, &curMode) || curMode != MODE_CLIENT) {
 		needReConn = true;
 		INFO1("curMode != MODE_CLIENT");
@@ -1515,15 +1534,20 @@ void AtDrv::startClient(uint8_t sock, const char *host, uint16_t port, uint8_t p
 			goto end;			
 		}
 	}
-
+#endif
+	
+#ifndef _SMALL_DRIVER
 	if(!getRemoteHost(sock, curHostBuf) || (strcmp(curHostBuf,  host) != 0)) {
+#endif
 		needReConn = true;
 		INFO1("curHostBuf != host");
 		if(!setRemoteHost(sock, host)) {
 			INFO1("Can't set host");
 			goto end;	
 		}
+#ifndef _SMALL_DRIVER
 	}
+#endif
 	
 	if(!getProtocol(sock, &curProtocol) || curProtocol != protMode) {
 		needReConn = true;
@@ -1543,6 +1567,7 @@ void AtDrv::startClient(uint8_t sock, const char *host, uint16_t port, uint8_t p
 		}
 	}
 	
+#ifndef _SMALL_DRIVER
 	if(!getTcpAuto(sock, &curTcpAuto) || curTcpAuto != false) {
 		needReConn = true;
 		INFO1("curTcpAuto != false");	
@@ -1551,7 +1576,8 @@ void AtDrv::startClient(uint8_t sock, const char *host, uint16_t port, uint8_t p
 			goto end;	
 		}
 	}	
-	
+#endif
+
 	if(!getLocalPort(sock, &curLocalPort) || curLocalPort != localSockPort[sock]) {
 		needReConn = true;
 		INFO1("curLocalPort != port");
@@ -1560,13 +1586,13 @@ void AtDrv::startClient(uint8_t sock, const char *host, uint16_t port, uint8_t p
 			goto end;	
 		}
 	}	
-	
+
 	if(needReConn) {
 		if(!reConnect()) {
 			INFO1("Can't reconnect");
 			goto end;	
 		}
-	}	
+	}
 
 	sockPort[sock] = localSockPort[sock];
 	sockConnected[sock] = true;
@@ -1578,7 +1604,7 @@ end:
 uint16_t AtDrv::availData(uint8_t sock)
 {
 	uint16_t len = 0;
-	
+		
 	// sock1 (second uart port) is always in data mode, so don't need to switch mode
 	if(sock == 0 && isAtMode()) {
 		if(!switchToDataMode()) {
@@ -1599,7 +1625,7 @@ end:
 int AtDrv::peek(uint8_t sock)
 {
 	int c = -1;
-	
+		
 	// sock1 (second uart port) is always in data mode, so don't need to switch mode
 	if(sock == 0 && isAtMode()) {
 		if(!switchToDataMode()) {
@@ -1675,7 +1701,7 @@ uint16_t AtDrv::write(uint8_t sock, const uint8_t *data, uint16_t _len)
 	// sock1 (second uart port) is always in data mode, so don't need to switch mode
 	if(sock == 0 && isAtMode()) {
 		if(!switchToDataMode()) {
-			INFO1("Can't switch to data mode");
+			Serial.println(F("cannot switch to data mode"));
 			goto end;
 		}
 	}
@@ -1809,7 +1835,7 @@ uint8_t AtDrv::getClientState(uint8_t sock, long timeout)
 		}
 		
 		serialPort[0].setTimeout(SERIAL_TIMEOUT);
-
+		
 		if(!serialPort[0].available()) {
 			INFO1("No data");
 			break;
@@ -1846,6 +1872,7 @@ end:
 	return;
 }
 
+#ifndef _SMALL_DRIVER
 bool AtDrv::disconnect()
 {
 	bool ret = false;
@@ -1903,6 +1930,7 @@ uint8_t AtDrv::getScanNetworks(char _networkSsid[][WL_SSID_MAX_LENGTH+1], int32_
 			goto end;		
 		}
 		lineBuf[bytes] = NULL;
+		Serial.println(lineBuf);
 		// a valid item line should be channel num (a number) and contains 100 characters above
 		if(lineBuf[0] >= '0' && lineBuf[1] <= '9' && bytes > 100) {
 			INFO1("Found a item");
@@ -2184,6 +2212,9 @@ end:
 	return;
 }
 
+#endif
+
+
 uint8_t AtDrv::checkDataSent(uint8_t sock)
 {
 	// Since RM04 can't check data sent status, jsut flush our UART buffer instead
@@ -2204,8 +2235,7 @@ AtDrv::AtDrv()
 
 AtDrv atDrv;
 
-HardwareSerial AtDrv::serialPort[] = {AT_DRV_SERIAL, AT_DRV_SERIAL1};
 bool AtDrv::atMode = false;
-uint16_t AtDrv::sockPort[2] = {0};
+uint16_t AtDrv::sockPort[1] = {0};
 QueueList<uint8_t> AtDrv::sock0DataQueue;
-bool AtDrv::sockConnected[2] = {false, false};
+bool AtDrv::sockConnected[1] = {false};

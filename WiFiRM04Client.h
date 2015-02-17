@@ -5,6 +5,8 @@
 #include "Client.h"
 #include "IPAddress.h"
 
+#define _SMALL_DRIVER
+
 class WiFiRM04Client : public Client {
 
 public:
@@ -25,7 +27,9 @@ public:
   virtual uint8_t connected();
   virtual operator bool();
 
+#ifndef _SMALL_DRIVER
   friend class WiFiRM04Server;
+#endif
 
   using Print::write;
 

@@ -6,7 +6,7 @@
 #include "at_drv.h"
 #include "wifi_drv.h"
 
-#define _DEBUG_
+//#define _DEBUG_
 
 extern "C" {
 #include "wifi_spi.h"
@@ -14,8 +14,9 @@ extern "C" {
 #include "debug.h"
 }
 
+#ifndef _SMALL_DRIVER
 // Array of data to cache the information related to the networks discovered
-char 	WiFiDrv::_networkSsid[][WL_SSID_MAX_LENGTH+1] = {{"1"},{"2"},{"3"},{"4"},{"5"}};
+char 	WiFiDrv::_networkSsid[][WL_SSID_MAX_LENGTH+1] = {{"1"}};
 int32_t WiFiDrv::_networkRssi[WL_NETWORKS_LIST_MAXNUM] = { 0 };
 uint8_t WiFiDrv::_networkEncr[WL_NETWORKS_LIST_MAXNUM] = { 0 };
 uint8_t numList = 0;
@@ -23,16 +24,19 @@ uint8_t numList = 0;
 // Cached values of retrieved data
 char 	WiFiDrv::_ssid[] = {0};
 uint8_t	WiFiDrv::_bssid[] = {0};
+#endif
 uint8_t WiFiDrv::_mac[] = {0};
+#ifndef _SMALL_DRIVER
 uint8_t WiFiDrv::_localIp[] = {0};
 uint8_t WiFiDrv::_subnetMask[] = {0};
 uint8_t WiFiDrv::_gatewayIp[] = {0};
 // Firmware version
 char    WiFiDrv::fwVersion[] = {0};
+#endif
 
 
 // Private Methods
-
+#ifndef _SMALL_DRIVER
 void WiFiDrv::getNetworkData(uint8_t *ip, uint8_t *mask, uint8_t *gwip)
 {
 	AtDrv::getNetworkData(ip, mask, gwip);
@@ -42,6 +46,7 @@ void WiFiDrv::getRemoteData(uint8_t sock, uint8_t *ip, uint8_t *port)
 {
     AtDrv::getRemoteData(sock, ip, (uint16_t *)port);
 }
+#endif
 
 
 // Public Methods
@@ -52,10 +57,12 @@ void WiFiDrv::wifiDriverInit()
     AtDrv::begin();
 }
 
+#ifndef _SMALL_DRIVER
 bool WiFiDrv::wifiSetApMode(char* ssid, uint8_t ssid_len)
 {
     return AtDrv::setApSSID(ssid, 0, NULL);
 }
+#endif
 
 int8_t WiFiDrv::wifiSetNetwork(char* ssid, uint8_t ssid_len)
 {
@@ -85,6 +92,7 @@ int8_t WiFiDrv::wifiSetKey(char* ssid, uint8_t ssid_len, uint8_t key_idx, const 
     return (ret)? WL_SUCCESS : WL_FAILURE;
 }
 
+#ifndef _SMALL_DRIVER
 void WiFiDrv::config(uint8_t validParams, uint32_t local_ip, uint32_t gateway, uint32_t subnet)
 {
 	// Not support
@@ -94,8 +102,6 @@ void WiFiDrv::setDNS(uint8_t validParams, uint32_t dns_server1, uint32_t dns_ser
 {
     // Not support
 }
-
-
                         
 int8_t WiFiDrv::disconnect()
 {
@@ -105,6 +111,7 @@ int8_t WiFiDrv::disconnect()
 
     return (ret)? WL_SUCCESS : WL_FAILURE;
 }
+#endif
 
 uint8_t WiFiDrv::getConnectionStatus()
 {
@@ -121,6 +128,7 @@ uint8_t* WiFiDrv::getMacAddress()
     return _mac;
 }
 
+#ifndef _SMALL_DRIVER
 void WiFiDrv::getIpAddress(IPAddress& ip)
 {
     getNetworkData(_localIp, _subnetMask, _gatewayIp);
@@ -221,5 +229,6 @@ char*  WiFiDrv::getFwVersion()
     AtDrv::getFwVersion(fwVersion, WL_FW_VER_LENGTH);
     return fwVersion;
 }
+#endif
 
 WiFiDrv wiFiDrv;
