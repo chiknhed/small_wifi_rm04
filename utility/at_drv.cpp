@@ -233,8 +233,6 @@ bool AtDrv::switchToAtMode()
 bool AtDrv::switchToDataMode(long timeout)
 {
 	int retryCount = 0;
-
-	Serial.println(F("hello"));
 	
 	if(!isAtMode())
 		return true;
