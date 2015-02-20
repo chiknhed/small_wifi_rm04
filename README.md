@@ -1,4 +1,4 @@
-# WiFiRM04 Library
+# Smaller WiFiRM04 Library
 
 WiFiRM04 library is an Arduino WiFi library for Hi-Link HLK-RM04 module. (http://www.hlktech.com/en/productshow.asp?id=142)
 This library is compatible with Arduino WiFi library and all examples of Arduino WiFi library could be compiled with this
